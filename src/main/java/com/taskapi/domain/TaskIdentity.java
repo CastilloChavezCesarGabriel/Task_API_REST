@@ -1,0 +1,15 @@
+package com.taskapi.domain;
+
+public final class TaskIdentity {
+    private final String identifier;
+    private final String title;
+
+    public TaskIdentity(String identifier, String title) {
+        this.identifier = identifier;
+        this.title = title;
+    }
+
+    public void accept(ITaskIdentityVisitor visitor) {
+        visitor.visit(identifier, title);
+    }
+}
