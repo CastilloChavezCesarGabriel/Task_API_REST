@@ -38,19 +38,20 @@ public final class TaskController {
 
     @PutMapping("/{identifier}/start")
     public ResponseEntity<Map<String, Object>> start(@PathVariable String identifier) {
-        TaskResult result = operations.start(identifier);
-        return result.provide(new Response(HttpStatus.OK, HttpStatus.NOT_FOUND));
+        return handle(operations.start(identifier));
     }
 
     @PutMapping("/{identifier}/complete")
     public ResponseEntity<Map<String, Object>> complete(@PathVariable String identifier) {
-        TaskResult result = operations.complete(identifier);
-        return result.provide(new Response(HttpStatus.OK, HttpStatus.NOT_FOUND));
+        return handle(operations.complete(identifier));
     }
 
     @DeleteMapping("/{identifier}")
     public ResponseEntity<Map<String, Object>> remove(@PathVariable String identifier) {
-        TaskResult result = operations.remove(identifier);
+        return handle(operations.remove(identifier));
+    }
+
+    private ResponseEntity<Map<String, Object>> handle(TaskResult result) {
         return result.provide(new Response(HttpStatus.OK, HttpStatus.NOT_FOUND));
     }
 

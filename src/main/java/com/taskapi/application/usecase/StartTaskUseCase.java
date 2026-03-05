@@ -1,23 +1,21 @@
 package com.taskapi.application.usecase;
 
 import com.taskapi.application.result.TaskResult;
-import com.taskapi.domain.visitor.ITaskRepository;
 import com.taskapi.domain.Task;
+import com.taskapi.domain.visitor.ITaskRepository;
 
-public final class StartTaskUseCase {
-    private final ITaskRepository repository;
+public final class StartTaskUseCase extends TaskTransitionUseCase {
 
     public StartTaskUseCase(ITaskRepository repository) {
-        this.repository = repository;
+        super(repository);
     }
 
     public TaskResult start(String identifier) {
-        Task task = repository.find(identifier);
-        if (task == null) {
-            return TaskResult.reject("Task not found");
-        }
-        Task started = task.start();
-        repository.store(started);
-        return TaskResult.accept(started);
+        return apply(identifier);
+    }
+
+    @Override
+    protected Task transform(Task task) {
+        return task.start();
     }
 }
