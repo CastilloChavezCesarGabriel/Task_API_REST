@@ -1,7 +1,7 @@
 # Task API REST - Spring Boot
 
 This REST API orchestrates tasks between Android apps by exposing a task management domain through
-HTTP endpoints, where clients create, complete and remove tasks that transition through PENDING,
+HTTP endpoints, where clients create, start, complete and remove tasks that transition through PENDING,
 IN_PROGRESS and COMPLETED statuses. Each incoming request flows through a strictly layered Clean
 Architecture — from the controller down to the use case and into the repository — and returns a typed
 result object that drives the HTTP response without coupling the domain to the web layer. No domain
@@ -12,12 +12,16 @@ to getter calls.
 ## Clean Architecture Structure
 
 - **Domain**: Pure Java classes with zero framework dependencies. `Task`, `TaskIdentity` and `TaskState`
-  encapsulate behavior without getters. `ITaskRepository` defines the contract for persistence.
-- **Application**: Use cases (`CreateTaskUseCase`, `CompleteTaskUseCase`, `RemoveTaskUseCase`,
-  `ListTasksUseCase`) each do one thing and return typed result objects. `TaskOperations` acts as a
-  facade, giving the controller a single entry point.
+  encapsulate behavior without getters. Visitor interfaces live in `domain/visitor/` and define the
+  contracts for data access and persistence.
+- **Application**: Use cases (`CreateTaskUseCase`, `StartTaskUseCase`, `CompleteTaskUseCase`,
+  `RemoveTaskUseCase`, `ListTasksUseCase`) each do one thing and return typed result objects.
+  `StartTaskUseCase` and `CompleteTaskUseCase` extend `TaskTransitionUseCase`, which centralizes the
+  shared find-null-check-store pattern. `TaskOperations` acts as a facade, creating use cases on demand
+  via factory methods and giving the controller a single entry point.
 - **Infrastructure**: Spring Boot wiring. `TaskController` handles HTTP. `TaskRepository`
-  stores tasks in memory. Response builders translate result objects into `ResponseEntity` responses.
+  stores tasks in memory. `TaskMapper` is an abstract visitor that converts task data into maps, extended
+  by `Response` for single-task endpoints and `TaskCollector` for list endpoints.
 
 ## Java Libraries Used
 
@@ -37,14 +41,16 @@ to getter calls.
 ## Features
 
 - Create tasks with a title and description
-- List all tasks or filter by status (`PENDING`, `IN_PROGRESS`, `COMPLETED`)
-- Complete a task by identifier, transitioning its status
+- Start a task by identifier, transitioning its status to IN_PROGRESS
+- Complete a task by identifier, transitioning its status to COMPLETED
 - Remove a task by identifier
+- List all tasks or filter by status (`PENDING`, `IN_PROGRESS`, `COMPLETED`)
 - Input validation with descriptive error responses
+- Fully immutable domain objects — state changes return new instances
 - No getters on domain objects — data access exclusively through the Visitor pattern
 - Strict 2-parameter maximum across all methods, constructors and lambdas
 - Result objects with `provide()` method for decoupled response building
-- 16 automated tests covering domain, use cases and HTTP endpoints
+- 20 automated tests covering domain, use cases and HTTP endpoints
 
 ## API Reference
 
@@ -53,6 +59,7 @@ to getter calls.
 | `POST`   | `/tasks`                       | Create a task    | 201     | 400     |
 | `GET`    | `/tasks`                       | List all tasks   | 200     | —       |
 | `GET`    | `/tasks?status=PENDING`        | Filter by status | 200     | —       |
+| `PUT`    | `/tasks/{identifier}/start`    | Start a task     | 200     | 404     |
 | `PUT`    | `/tasks/{identifier}/complete` | Complete a task  | 200     | 404     |
 | `DELETE` | `/tasks/{identifier}`          | Remove a task    | 200     | 404     |
 
@@ -62,35 +69,39 @@ to getter calls.
 TaskAPI/
 ├── src/main/java/com/taskapi/
 │   ├── domain/
-│   │   ├── Task.java                        # Domain entity, behavior-driven, no getters
+│   │   ├── Task.java                        # Domain entity, fully immutable, no getters
 │   │   ├── TaskIdentity.java                # Value object grouping identifier and title
 │   │   ├── TaskState.java                   # Value object grouping description and status
 │   │   ├── TaskStatus.java                  # Enum: PENDING, IN_PROGRESS, COMPLETED
-│   │   ├── ITaskVisitor.java                # Visitor interface for Task data access
-│   │   ├── ITaskIdentityVisitor.java        # Visitor interface for TaskIdentity data access
-│   │   ├── ITaskStateVisitor.java           # Visitor interface for TaskState data access
-│   │   └── ITaskRepository.java            # Repository contract
+│   │   └── visitor/
+│   │       ├── ITaskVisitor.java            # Visitor interface for Task data access
+│   │       ├── ITaskIdentityVisitor.java    # Visitor interface for TaskIdentity data access
+│   │       ├── ITaskStateVisitor.java       # Visitor interface for TaskState data access
+│   │       └── ITaskRepository.java         # Repository contract
 │   ├── application/
-│   │   ├── TaskOperations.java             # Facade grouping all use cases
+│   │   ├── TaskOperations.java              # Facade creating use cases on demand via factory methods
 │   │   ├── result/
 │   │   │   ├── TaskResult.java              # Result object for all task operations
 │   │   │   └── ITaskResultConsumer.java     # Consumer interface for task results
 │   │   └── usecase/
+│   │       ├── TaskTransitionUseCase.java   # Abstract: shared find-null-check-store for state transitions
 │   │       ├── CreateTaskUseCase.java       # Validates and stores a new task
+│   │       ├── StartTaskUseCase.java        # Transitions task status to IN_PROGRESS
 │   │       ├── CompleteTaskUseCase.java     # Transitions task status to COMPLETED
 │   │       ├── RemoveTaskUseCase.java       # Removes a task by identifier
-│   │       └── ListTasksUseCase.java        # Returns all or filtered tasks
+│   │       └── ListTasksUseCase.java        # Pushes all or filtered tasks to a visitor
 │   └── infrastructure/
 │       ├── TaskApiApplication.java          # Spring Boot entry point
+│       ├── TaskController.java             # REST controller with one param: TaskOperations
 │       ├── persistence/
 │       │   ├── TaskRepository.java          # ConcurrentHashMap-based implementation
 │       │   └── TaskRecorder.java            # Visitor that records task into storage by identifier
-│       └── web/
-│           ├── TaskController.java          # REST controller with one param: TaskOperations
-│           ├── request/
-│           │   └── TaskRequest.java             # DTO for POST /tasks request body
-│           └── response/
-│               └── Response.java                # Visitor and result consumer that builds HTTP responses
+│       ├── request/
+│       │   └── TaskRequest.java             # DTO for POST /tasks request body
+│       └── response/
+│           ├── TaskMapper.java              # Abstract visitor: shared task-to-map conversion
+│           ├── Response.java                # Single-task result consumer extending TaskMapper
+│           └── TaskCollector.java           # List collector pushing each task map to an external target
 └── src/test/java/com/taskapi/
     ├── domain/
     │   └── TaskTest.java                    # Domain behavior and Visitor correctness
@@ -102,12 +113,14 @@ TaskAPI/
 
 ## Design Patterns
 
-| Pattern            | Usage                                                                                                   |
-|--------------------|---------------------------------------------------------------------------------------------------------|
-| **Visitor**        | `Task`, `TaskIdentity` and `TaskState` push their data to visitors — no getters anywhere in the domain |
-| **Result Object**  | Each use case returns a typed result with `provide()`, decoupling use case logic from HTTP concerns     |
-| **Facade**         | `TaskOperations` groups all four use cases behind a single injectable dependency                         |
-| **Factory Method** | `TaskResult.accept()` / `reject()` — static factories communicate outcome without exposing fields       |
+| Pattern                          | Usage                                                                                                       |
+|----------------------------------|-------------------------------------------------------------------------------------------------------------|
+| **Visitor**                      | `Task`, `TaskIdentity` and `TaskState` push their data to visitors — no getters anywhere in the domain      |
+| **Result Object**                | Each use case returns a typed result with `provide()`, decoupling use case logic from HTTP concerns          |
+| **Facade**                       | `TaskOperations` groups all five use cases behind a single injectable dependency                             |
+| **Factory Method**               | `TaskOperations` creates use cases on demand; `TaskResult.accept()` / `reject()` communicate outcome        |
+| **Abstract Class Polymorphism**  | `TaskTransitionUseCase` centralizes find-store for `StartTaskUseCase` and `CompleteTaskUseCase`              |
+| **Abstract Class Polymorphism**  | `TaskMapper` centralizes task-to-map visitor logic for `Response` and `TaskCollector`                        |
 
 ## Program Flow
 
@@ -117,22 +130,28 @@ TaskAPI/
    and `TaskOperations` into `TaskController` — all through constructor injection with a single parameter each.
 
 2. When a client (an Android app, curl, or Postman) sends an HTTP request, `TaskController` receives it
-   and reads the request data — either a JSON body for creation, a path variable for completion and removal,
-   or a query parameter for status filtering. The controller immediately delegates to `TaskOperations` without
-   performing any business logic itself.
+   and reads the request data — either a JSON body for creation, a path variable for start, completion
+   and removal, or a query parameter for status filtering. The controller immediately delegates to
+   `TaskOperations` without performing any business logic itself.
 
-3. `TaskOperations` forwards the call to the appropriate use case. The use case validates the input — for
-   example, `CreateTaskUseCase` rejects a blank title immediately — and interacts with `ITaskRepository` to
-   store, find or remove tasks. It then wraps the outcome in a typed result object such as `TaskResult`,
-   using static factory methods `accept()` or `reject()` to communicate success or failure without exposing
-   internal state.
+3. `TaskOperations` creates the appropriate use case on demand via factory method and forwards the call.
+   The use case validates the input — for example, `CreateTaskUseCase` rejects a blank title immediately —
+   and interacts with `ITaskRepository` to store, find or remove tasks. For state transitions,
+   `StartTaskUseCase` and `CompleteTaskUseCase` inherit the shared find-null-check-store logic from
+   `TaskTransitionUseCase` and only provide their specific transformation (`task.start()` or
+   `task.complete()`), each of which returns a new immutable `Task` instance. The use case wraps the
+   outcome in a `TaskResult`, using static factory methods `accept()` or `reject()` to communicate
+   success or failure without exposing internal state.
 
 4. Back in the controller, `result.provide()` receives a `Response` and returns the `ResponseEntity`
-   directly. The `Response` class is both a result consumer and a Visitor — when `accept(Task)` is called,
-   it visits the task internally, builds the JSON map, and wraps it in the appropriate HTTP status. When
-   `reject(String)` is called, it returns an error response. No intermediate `build()` getter is needed.
+   directly. `Response` extends `TaskMapper`, which is an abstract visitor that converts task data into
+   a `Map<String, Object>`. When `accept(Task)` is called, it visits the task internally, builds the
+   JSON map, and wraps it in the appropriate HTTP status. When `reject(String)` is called, it returns an
+   error response. For list endpoints, a `TaskCollector` (also extending `TaskMapper`) receives each
+   task via the Visitor pattern and pushes the built map into an externally owned target list — no
+   `build()` getter is needed.
 
-5. During the visit, `Task` pushes its `TaskIdentity` and `TaskState` value objects into the `Response`.
+5. During the visit, `Task` pushes its `TaskIdentity` and `TaskState` value objects into the `TaskMapper`.
    Each value object calls its own visitor method, which populates the internal map with identifier, title,
    description and status. Spring Boot serializes that map to JSON automatically — no getters are ever
    called on any domain object throughout the entire flow.

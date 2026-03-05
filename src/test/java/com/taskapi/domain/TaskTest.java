@@ -3,8 +3,6 @@ package com.taskapi.domain;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 public final class TaskTest {
 
     @Test
@@ -44,29 +42,18 @@ public final class TaskTest {
     @Test
     void acceptPushesDataToVisitor() {
         Task task = Task.create("Learn REST", "Build first API");
-        boolean[] visited = {false};
-
-        task.accept((identity, state) -> {
-            visited[0] = true;
-            assertNotNull(identity);
-            assertNotNull(state);
-        });
-
-        assertTrue(visited[0]);
+        Snapshot captor = new Snapshot();
+        task.accept(captor);
+        captor.assertVisited();
     }
 
     @Test
     void acceptPushesCorrectTitleAndDescription() {
         Task task = Task.create("Learn REST", "Build first API");
-        String[] captured = new String[2];
-
-        task.accept((identity, state) -> {
-            identity.accept((identifier, title) -> captured[0] = title);
-            state.accept((description, status) -> captured[1] = description);
-        });
-
-        assertEquals("Learn REST", captured[0]);
-        assertEquals("Build first API", captured[1]);
+        Snapshot captor = new Snapshot();
+        task.accept(captor);
+        captor.assertTitle("Learn REST");
+        captor.assertDescription("Build first API");
     }
 
     private void assertStatus(Task task, TaskStatus expected) {
