@@ -1,10 +1,9 @@
 package com.taskapi.application.usecase;
 
-import com.taskapi.domain.ITaskRepository;
+import com.taskapi.domain.visitor.ITaskRepository;
+import com.taskapi.domain.visitor.ITaskVisitor;
 import com.taskapi.domain.Task;
 import com.taskapi.domain.TaskStatus;
-
-import java.util.List;
 
 public final class ListTasksUseCase {
     private final ITaskRepository repository;
@@ -13,11 +12,15 @@ public final class ListTasksUseCase {
         this.repository = repository;
     }
 
-    public List<Task> list() {
-        return repository.collect();
+    public void list(ITaskVisitor visitor) {
+        for (Task task : repository.collect()) {
+            task.accept(visitor);
+        }
     }
 
-    public List<Task> list(TaskStatus status) {
-        return repository.collect(status);
+    public void list(TaskStatus status, ITaskVisitor visitor) {
+        for (Task task : repository.collect(status)) {
+            task.accept(visitor);
+        }
     }
 }

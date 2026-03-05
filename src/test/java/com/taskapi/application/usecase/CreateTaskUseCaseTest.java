@@ -1,16 +1,15 @@
 package com.taskapi.application.usecase;
 
-import com.taskapi.application.result.CreateTaskResult;
-import com.taskapi.application.result.ICreateResultConsumer;
+import com.taskapi.application.result.TaskResult;
+import com.taskapi.application.result.ITaskResultConsumer;
 import com.taskapi.domain.*;
 
+import com.taskapi.domain.visitor.ITaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,22 +25,21 @@ public final class CreateTaskUseCaseTest {
 
     @Test
     void createWithValidTitleAccepts() {
-        CreateTaskResult result = useCase.create("Learn REST", "Build API");
-        boolean[] accepted = {false};
+        TaskResult result = useCase.create("Learn REST", "Build API");
 
-        result.provide(new ICreateResultConsumer() {
+        boolean accepted = result.provide(new ITaskResultConsumer<>() {
             @Override
-            public void accept(Task createdTask) {
-                accepted[0] = true;
+            public Boolean accept(Task task) {
+                return true;
             }
 
             @Override
-            public void reject(String reason) {
-                fail("Should not reject");
+            public Boolean reject(String reason) {
+                return false;
             }
         });
 
-        assertTrue(accepted[0]);
+        assertTrue(accepted);
     }
 
     @Test
@@ -52,47 +50,45 @@ public final class CreateTaskUseCaseTest {
 
     @Test
     void createWithBlankTitleRejects() {
-        CreateTaskResult result = useCase.create("", "Build API");
-        String[] rejectedReason = {null};
+        TaskResult result = useCase.create("", "Build API");
 
-        result.provide(new ICreateResultConsumer() {
+        String rejectedReason = result.provide(new ITaskResultConsumer<>() {
             @Override
-            public void accept(Task createdTask) {
+            public String accept(Task task) {
                 fail("Should not accept");
+                return null;
             }
 
             @Override
-            public void reject(String reason) {
-                rejectedReason[0] = reason;
+            public String reject(String reason) {
+                return reason;
             }
         });
 
-        assertNotNull(rejectedReason[0]);
+        assertNotNull(rejectedReason);
     }
 
     @Test
     void createWithNullTitleRejects() {
-        CreateTaskResult result = useCase.create(null, "Build API");
-        boolean[] rejected = {false};
+        TaskResult result = useCase.create(null, "Build API");
 
-        result.provide(new ICreateResultConsumer() {
+        boolean rejected = result.provide(new ITaskResultConsumer<>() {
             @Override
-            public void accept(Task createdTask) {
-                fail("Should not accept");
+            public Boolean accept(Task task) {
+                return false;
             }
 
             @Override
-            public void reject(String reason) {
-                rejected[0] = true;
+            public Boolean reject(String reason) {
+                return true;
             }
         });
 
-        assertTrue(rejected[0]);
+        assertTrue(rejected);
     }
 
     private static final class TestTaskRepository implements ITaskRepository {
         final List<Task> storedTasks = new ArrayList<>();
-        final Map<String, Task> storage = new HashMap<>();
 
         @Override
         public void store(Task task) {
@@ -100,29 +96,21 @@ public final class CreateTaskUseCaseTest {
         }
 
         @Override
-        public void remove(String identifier) {
-            storage.remove(identifier);
-        }
+        public void remove(String identifier) {}
 
         @Override
         public Task find(String identifier) {
-            return storage.get(identifier);
+            return null;
         }
 
         @Override
         public List<Task> collect() {
-            return new ArrayList<>(storage.values());
+            return List.of();
         }
 
         @Override
         public List<Task> collect(TaskStatus status) {
-            List<Task> filtered = new ArrayList<>();
-            for (Task task : storage.values()) {
-                if (task.matches(status)) {
-                    filtered.add(task);
-                }
-            }
-            return filtered;
+            return List.of();
         }
     }
 }

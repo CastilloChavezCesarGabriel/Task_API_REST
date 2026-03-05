@@ -1,5 +1,7 @@
 package com.taskapi.domain;
 
+import com.taskapi.domain.visitor.ITaskStateVisitor;
+
 public final class TaskState {
     private final String description;
     private final TaskStatus status;
@@ -11,13 +13,5 @@ public final class TaskState {
 
     public void accept(ITaskStateVisitor visitor) {
         visitor.visit(description, status);
-    }
-
-    public TaskState transition(TaskStatus newStatus) {
-        return new TaskState(description, newStatus);
-    }
-
-    public boolean matches(TaskStatus expected) {
-        return status == expected;
     }
 }

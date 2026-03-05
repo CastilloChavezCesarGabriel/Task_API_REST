@@ -1,4 +1,7 @@
-package com.taskapi.domain;
+package com.taskapi.domain.visitor;
+
+import com.taskapi.domain.Task;
+import com.taskapi.domain.TaskStatus;
 
 import java.util.List;
 

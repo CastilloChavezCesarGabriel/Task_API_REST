@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(scanBasePackages = "com.taskapi")
 public class TaskApiApplication {
-
     public static void main(String[] arguments) {
         SpringApplication.run(TaskApiApplication.class, arguments);
     }

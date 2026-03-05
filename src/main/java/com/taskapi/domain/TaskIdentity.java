@@ -1,5 +1,7 @@
 package com.taskapi.domain;
 
+import com.taskapi.domain.visitor.ITaskIdentityVisitor;
+
 public final class TaskIdentity {
     private final String identifier;
     private final String title;

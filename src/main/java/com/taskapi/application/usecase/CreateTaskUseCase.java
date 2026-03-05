@@ -1,7 +1,7 @@
 package com.taskapi.application.usecase;
 
-import com.taskapi.application.result.CreateTaskResult;
-import com.taskapi.domain.ITaskRepository;
+import com.taskapi.application.result.TaskResult;
+import com.taskapi.domain.visitor.ITaskRepository;
 import com.taskapi.domain.Task;
 
 public final class CreateTaskUseCase {
@@ -11,12 +11,12 @@ public final class CreateTaskUseCase {
         this.repository = repository;
     }
 
-    public CreateTaskResult create(String title, String description) {
+    public TaskResult create(String title, String description) {
         if (title == null || title.isBlank()) {
-            return CreateTaskResult.reject("Title cannot be empty");
+            return TaskResult.reject("Title cannot be empty");
         }
         Task task = Task.create(title, description);
         repository.store(task);
-        return CreateTaskResult.accept(task);
+        return TaskResult.accept(task);
     }
 }

@@ -16,7 +16,7 @@ to getter calls.
 - **Application**: Use cases (`CreateTaskUseCase`, `CompleteTaskUseCase`, `RemoveTaskUseCase`,
   `ListTasksUseCase`) each do one thing and return typed result objects. `TaskOperations` acts as a
   facade, giving the controller a single entry point.
-- **Infrastructure**: Spring Boot wiring. `TaskController` handles HTTP. `InMemoryTaskRepository`
+- **Infrastructure**: Spring Boot wiring. `TaskController` handles HTTP. `TaskRepository`
   stores tasks in memory. Response builders translate result objects into `ResponseEntity` responses.
 
 ## Java Libraries Used
@@ -73,12 +73,8 @@ TaskAPI/
 │   ├── application/
 │   │   ├── TaskOperations.java             # Facade grouping all use cases
 │   │   ├── result/
-│   │   │   ├── CreateTaskResult.java        # Result object with static factories and provide()
-│   │   │   ├── ICreateResultConsumer.java   # Consumer interface for create results
-│   │   │   ├── CompleteTaskResult.java      # Result object for complete operation
-│   │   │   ├── ICompleteResultConsumer.java # Consumer interface for complete results
-│   │   │   ├── RemoveTaskResult.java        # Result object for remove operation
-│   │   │   └── IRemoveResultConsumer.java   # Consumer interface for remove results
+│   │   │   ├── TaskResult.java              # Result object for all task operations
+│   │   │   └── ITaskResultConsumer.java     # Consumer interface for task results
 │   │   └── usecase/
 │   │       ├── CreateTaskUseCase.java       # Validates and stores a new task
 │   │       ├── CompleteTaskUseCase.java     # Transitions task status to COMPLETED
@@ -87,17 +83,14 @@ TaskAPI/
 │   └── infrastructure/
 │       ├── TaskApiApplication.java          # Spring Boot entry point
 │       ├── persistence/
-│       │   ├── InMemoryTaskRepository.java  # ConcurrentHashMap-based implementation
-│       │   └── IdentifierExtractor.java     # Visitor that extracts identifier for map key
+│       │   ├── TaskRepository.java          # ConcurrentHashMap-based implementation
+│       │   └── TaskRecorder.java            # Visitor that records task into storage by identifier
 │       └── web/
 │           ├── TaskController.java          # REST controller with one param: TaskOperations
 │           ├── request/
-│           │   └── CreateTaskRequest.java   # DTO for POST /tasks request body
+│           │   └── TaskRequest.java             # DTO for POST /tasks request body
 │           └── response/
-│               ├── TaskResponseWriter.java      # Visitor that builds JSON map from Task data
-│               ├── CreateResponseBuilder.java   # Builds HTTP 201 or 400 responses
-│               ├── CompleteResponseBuilder.java # Builds HTTP 200 or 404 responses
-│               └── RemoveResponseBuilder.java   # Builds HTTP 200 or 404 responses
+│               └── Response.java                # Visitor and result consumer that builds HTTP responses
 └── src/test/java/com/taskapi/
     ├── domain/
     │   └── TaskTest.java                    # Domain behavior and Visitor correctness
@@ -114,13 +107,13 @@ TaskAPI/
 | **Visitor**        | `Task`, `TaskIdentity` and `TaskState` push their data to visitors — no getters anywhere in the domain |
 | **Result Object**  | Each use case returns a typed result with `provide()`, decoupling use case logic from HTTP concerns     |
 | **Facade**         | `TaskOperations` groups all four use cases behind a single injectable dependency                         |
-| **Factory Method** | `CreateTaskResult.accept()` / `reject()` — static factories communicate outcome without exposing fields |
+| **Factory Method** | `TaskResult.accept()` / `reject()` — static factories communicate outcome without exposing fields       |
 
 ## Program Flow
 
 1. When the application starts, Spring Boot scans the packages and wires everything together automatically.
-   `InMemoryTaskRepository` is registered as a `@Repository`, `TaskOperations` as a `@Service`, and
-   `TaskController` as a `@RestController`. Spring injects `InMemoryTaskRepository` into `TaskOperations`,
+   `TaskRepository` is registered as a `@Repository`, `TaskOperations` as a `@Service`, and
+   `TaskController` as a `@RestController`. Spring injects `TaskRepository` into `TaskOperations`,
    and `TaskOperations` into `TaskController` — all through constructor injection with a single parameter each.
 
 2. When a client (an Android app, curl, or Postman) sends an HTTP request, `TaskController` receives it
@@ -130,20 +123,19 @@ TaskAPI/
 
 3. `TaskOperations` forwards the call to the appropriate use case. The use case validates the input — for
    example, `CreateTaskUseCase` rejects a blank title immediately — and interacts with `ITaskRepository` to
-   store, find or remove tasks. It then wraps the outcome in a typed result object such as `CreateTaskResult`,
+   store, find or remove tasks. It then wraps the outcome in a typed result object such as `TaskResult`,
    using static factory methods `accept()` or `reject()` to communicate success or failure without exposing
    internal state.
 
-4. Back in the controller, a response builder such as `CreateResponseBuilder` is created and passed to
-   `result.provide()`. The result object calls either `accept()` or `reject()` on the builder, which
-   constructs the appropriate `ResponseEntity` — HTTP 201 for a created task, 400 for a validation failure,
-   404 for a task not found, or 200 for a successful operation.
+4. Back in the controller, `result.provide()` receives a `Response` and returns the `ResponseEntity`
+   directly. The `Response` class is both a result consumer and a Visitor — when `accept(Task)` is called,
+   it visits the task internally, builds the JSON map, and wraps it in the appropriate HTTP status. When
+   `reject(String)` is called, it returns an error response. No intermediate `build()` getter is needed.
 
-5. When the response needs to include task data, `TaskResponseWriter` is used as a Visitor. The controller
-   calls `task.accept(writer)`, and `Task` pushes its `TaskIdentity` and `TaskState` value objects into
-   the writer. Each value object in turn calls its own visitor method, which writes the fields into a
-   `LinkedHashMap`. Spring Boot serializes that map to JSON automatically — no getters are ever called on
-   any domain object throughout the entire flow.
+5. During the visit, `Task` pushes its `TaskIdentity` and `TaskState` value objects into the `Response`.
+   Each value object calls its own visitor method, which populates the internal map with identifier, title,
+   description and status. Spring Boot serializes that map to JSON automatically — no getters are ever
+   called on any domain object throughout the entire flow.
 
 ## Setting up on Mac
 

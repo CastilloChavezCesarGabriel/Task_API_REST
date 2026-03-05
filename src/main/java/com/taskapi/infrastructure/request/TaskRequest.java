@@ -1,6 +1,6 @@
-package com.taskapi.infrastructure.web.request;
+package com.taskapi.infrastructure.request;
 
-public final class CreateTaskRequest {
+public final class TaskRequest {
     private String title;
     private String description;
 

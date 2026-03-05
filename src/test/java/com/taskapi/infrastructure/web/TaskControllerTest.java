@@ -46,6 +46,27 @@ public final class TaskControllerTest {
     }
 
     @Test
+    void startTaskChangesStatus() throws Exception {
+        MvcResult createResult = mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Test task\", \"description\": \"For starting\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String identifier = extractIdentifier(createResult.getResponse().getContentAsString());
+
+        mockMvc.perform(put("/tasks/" + identifier + "/start"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void startNonExistentTaskReturns404() throws Exception {
+        mockMvc.perform(put("/tasks/nonexistent/start"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void completeTaskChangesStatus() throws Exception {
         MvcResult createResult = mockMvc.perform(post("/tasks")
                         .contentType(MediaType.APPLICATION_JSON)

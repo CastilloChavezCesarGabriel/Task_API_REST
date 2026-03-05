@@ -1,32 +1,48 @@
 package com.taskapi.domain;
 
+import com.taskapi.domain.visitor.ITaskVisitor;
+
+import java.util.List;
 import java.util.UUID;
 
 public final class Task {
     private final TaskIdentity identity;
-    private TaskState state;
+    private final String description;
+    private final TaskStatus status;
 
-    private Task(TaskIdentity identity, TaskState state) {
+    private Task(TaskIdentity identity, String description) {
         this.identity = identity;
-        this.state = state;
+        this.description = description;
+        this.status = TaskStatus.PENDING;
+    }
+
+    private Task(Task origin, TaskStatus newStatus) {
+        this.identity = origin.identity;
+        this.description = origin.description;
+        this.status = newStatus;
     }
 
     public static Task create(String title, String description) {
         String identifier = UUID.randomUUID().toString();
         TaskIdentity identity = new TaskIdentity(identifier, title);
-        TaskState state = new TaskState(description, TaskStatus.PENDING);
-        return new Task(identity, state);
+        return new Task(identity, description);
     }
 
-    public void complete() {
-        state = state.transition(TaskStatus.COMPLETED);
+    public Task start() {
+        return new Task(this, TaskStatus.IN_PROGRESS);
     }
 
-    public boolean matches(TaskStatus status) {
-        return state.matches(status);
+    public Task complete() {
+        return new Task(this, TaskStatus.COMPLETED);
+    }
+
+    public void filter(List<Task> target, TaskStatus expected) {
+        if (status == expected) {
+            target.add(this);
+        }
     }
 
     public void accept(ITaskVisitor visitor) {
-        visitor.visit(identity, state);
+        visitor.visit(identity, new TaskState(description, status));
     }
 }

@@ -1,24 +1,21 @@
 package com.taskapi.infrastructure.persistence;
 
-import com.taskapi.domain.ITaskRepository;
-import com.taskapi.domain.Task;
-import com.taskapi.domain.TaskStatus;
-import org.springframework.stereotype.Repository;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import com.taskapi.domain.visitor.ITaskRepository;
+import com.taskapi.domain.Task;
+import com.taskapi.domain.TaskStatus;
+import org.springframework.stereotype.Repository;
 
 @Repository
-public final class InMemoryTaskRepository implements ITaskRepository {
+public final class TaskRepository implements ITaskRepository {
     private final Map<String, Task> storage = new ConcurrentHashMap<>();
 
     @Override
     public void store(Task task) {
-        IdentifierExtractor extractor = new IdentifierExtractor();
-        task.accept(extractor);
-        storage.put(extractor.extractedIdentifier(), task);
+        task.accept(new TaskRecorder(storage, task));
     }
 
     @Override
@@ -40,9 +37,7 @@ public final class InMemoryTaskRepository implements ITaskRepository {
     public List<Task> collect(TaskStatus status) {
         List<Task> filtered = new ArrayList<>();
         for (Task task : storage.values()) {
-            if (task.matches(status)) {
-                filtered.add(task);
-            }
+            task.filter(filtered, status);
         }
         return filtered;
     }

@@ -1,7 +1,7 @@
 package com.taskapi.application.usecase;
 
-import com.taskapi.application.result.RemoveTaskResult;
-import com.taskapi.domain.ITaskRepository;
+import com.taskapi.application.result.TaskResult;
+import com.taskapi.domain.visitor.ITaskRepository;
 import com.taskapi.domain.Task;
 
 public final class RemoveTaskUseCase {
@@ -11,12 +11,12 @@ public final class RemoveTaskUseCase {
         this.repository = repository;
     }
 
-    public RemoveTaskResult remove(String identifier) {
+    public TaskResult remove(String identifier) {
         Task task = repository.find(identifier);
         if (task == null) {
-            return RemoveTaskResult.reject("Task not found");
+            return TaskResult.reject("Task not found");
         }
         repository.remove(identifier);
-        return RemoveTaskResult.accept();
+        return TaskResult.accept(task);
     }
 }
