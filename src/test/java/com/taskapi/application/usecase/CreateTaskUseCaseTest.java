@@ -6,12 +6,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public final class CreateTaskUseCaseTest {
-    private MockRepository repository;
+    private FakeRepository repository;
     private CreateTaskUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        repository = new MockRepository();
+        repository = new FakeRepository();
         useCase = new CreateTaskUseCase(repository);
     }
 

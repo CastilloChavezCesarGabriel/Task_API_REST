@@ -50,7 +50,7 @@ to getter calls.
 - No getters on domain objects — data access exclusively through the Visitor pattern
 - Strict 2-parameter maximum across all methods, constructors and lambdas
 - Result objects with `provide()` method for decoupled response building
-- 20 automated tests covering domain, use cases and HTTP endpoints
+- 21 automated tests covering domain, use cases and HTTP endpoints
 
 ## API Reference
 
@@ -104,9 +104,12 @@ TaskAPI/
 │           └── TaskCollector.java           # List collector pushing each task map to an external target
 └── src/test/java/com/taskapi/
     ├── domain/
-    │   └── TaskTest.java                    # Domain behavior and Visitor correctness
+    │   ├── TaskTest.java                    # Domain behavior, immutability and filter correctness
+    │   └── Snapshot.java                    # Test visitor capturing task data for assertions
     ├── application/usecase/
-    │   └── CreateTaskUseCaseTest.java       # Use case validation and result routing
+    │   ├── CreateTaskUseCaseTest.java       # Use case validation and result routing
+    │   ├── Acceptance.java                  # Test result consumer returning boolean acceptance
+    │   └── FakeRepository.java             # In-memory test double for ITaskRepository
     └── infrastructure/web/
         └── TaskControllerTest.java          # Full HTTP integration tests via MockMvc
 ```

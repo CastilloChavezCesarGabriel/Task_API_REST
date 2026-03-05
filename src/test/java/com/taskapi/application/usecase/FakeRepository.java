@@ -6,7 +6,7 @@ import com.taskapi.domain.visitor.ITaskRepository;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class MockRepository implements ITaskRepository {
+public final class FakeRepository implements ITaskRepository {
     final List<Task> storedTasks = new ArrayList<>();
 
     @Override

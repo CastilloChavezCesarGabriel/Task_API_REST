@@ -38,9 +38,18 @@ public final class TaskControllerTest {
     }
 
     @Test
-    void listTasksReturnsEmptyListInitially() throws Exception {
+    void listTasksContainsCreatedTask() throws Exception {
+        MvcResult createResult = mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Listed task\", \"description\": \"For listing\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String identifier = extractIdentifier(createResult.getResponse().getContentAsString());
+
         mockMvc.perform(get("/tasks"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.identifier=='" + identifier + "')].title").value("Listed task"));
     }
 
     @Test
@@ -104,6 +113,24 @@ public final class TaskControllerTest {
     void removeNonExistentTaskReturns404() throws Exception {
         mockMvc.perform(delete("/tasks/nonexistent"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void listFiltersByStatus() throws Exception {
+        MvcResult createResult = mockMvc.perform(post("/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"Filter test\", \"description\": \"For filtering\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String identifier = extractIdentifier(createResult.getResponse().getContentAsString());
+
+        mockMvc.perform(put("/tasks/" + identifier + "/complete"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/tasks?status=COMPLETED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.identifier=='" + identifier + "')].status").value("COMPLETED"));
     }
 
     private String extractIdentifier(String jsonResponse) {
