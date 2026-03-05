@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public final class TaskTest {
-
     @Test
     void createAssignsPendingStatus() {
         Task task = Task.create("Learn REST", "Build first API");

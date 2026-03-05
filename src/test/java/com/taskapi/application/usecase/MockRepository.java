@@ -3,7 +3,6 @@ package com.taskapi.application.usecase;
 import com.taskapi.domain.Task;
 import com.taskapi.domain.TaskStatus;
 import com.taskapi.domain.visitor.ITaskRepository;
-
 import java.util.ArrayList;
 import java.util.List;
 

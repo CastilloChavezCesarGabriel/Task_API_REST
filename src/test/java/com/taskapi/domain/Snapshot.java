@@ -3,12 +3,10 @@ package com.taskapi.domain;
 import com.taskapi.domain.visitor.ITaskIdentityVisitor;
 import com.taskapi.domain.visitor.ITaskStateVisitor;
 import com.taskapi.domain.visitor.ITaskVisitor;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public final class Snapshot implements ITaskVisitor,
-        ITaskIdentityVisitor, ITaskStateVisitor {
+public final class Snapshot implements ITaskVisitor, ITaskIdentityVisitor, ITaskStateVisitor {
     private TaskIdentity identity;
     private String title;
     private String description;
