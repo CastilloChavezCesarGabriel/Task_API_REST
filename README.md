@@ -50,7 +50,7 @@ to getter calls.
 - No getters on domain objects — data access exclusively through the Visitor pattern
 - Strict 2-parameter maximum across all methods, constructors and lambdas
 - Result objects with `provide()` method for decoupled response building
-- 21 automated tests covering domain, use cases and HTTP endpoints
+- 20 automated tests covering domain, use cases and HTTP endpoints
 
 ## API Reference
 
