@@ -4,16 +4,13 @@ import com.taskapi.domain.visitor.ITaskIdentityVisitor;
 import com.taskapi.domain.visitor.ITaskStateVisitor;
 import com.taskapi.domain.visitor.ITaskVisitor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public final class Snapshot implements ITaskVisitor, ITaskIdentityVisitor, ITaskStateVisitor {
-    private TaskIdentity identity;
     private String title;
     private String description;
 
     @Override
     public void visit(TaskIdentity identity, TaskState state) {
-        this.identity = identity;
         identity.accept(this);
         state.accept(this);
     }
@@ -26,10 +23,6 @@ public final class Snapshot implements ITaskVisitor, ITaskIdentityVisitor, ITask
     @Override
     public void visit(String description, TaskStatus status) {
         this.description = description;
-    }
-
-    public void assertVisited() {
-        assertNotNull(identity);
     }
 
     public void assertTitle(String expected) {

@@ -9,7 +9,6 @@ import com.taskapi.infrastructure.response.TaskCollector;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,7 @@ public final class TaskController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@RequestBody TaskRequest request) {
-        TaskResult result = operations.create(request.getTitle(), request.getDescription());
+        TaskResult result = request.create(operations);
         return result.provide(new Response(HttpStatus.CREATED, HttpStatus.BAD_REQUEST));
     }
 

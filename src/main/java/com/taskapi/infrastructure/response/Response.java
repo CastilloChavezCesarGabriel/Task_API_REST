@@ -7,8 +7,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Map;
 
-public final class Response extends TaskMapper
-        implements ITaskResultConsumer<ResponseEntity<Map<String, Object>>> {
+public final class Response extends TaskMapper implements ITaskResultConsumer<ResponseEntity<Map<String, Object>>> {
     private final HttpStatus successStatus;
     private final HttpStatus failureStatus;
 

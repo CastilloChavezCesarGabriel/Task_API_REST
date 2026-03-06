@@ -97,7 +97,7 @@ TaskAPI/
 │       │   ├── TaskRepository.java          # ConcurrentHashMap-based implementation
 │       │   └── TaskRecorder.java            # Visitor that records task into storage by identifier
 │       ├── request/
-│       │   └── TaskRequest.java             # DTO for POST /tasks request body
+│       │   └── TaskRequest.java             # Immutable request that pushes data to TaskOperations
 │       └── response/
 │           ├── TaskMapper.java              # Abstract visitor: shared task-to-map conversion
 │           ├── Response.java                # Single-task result consumer extending TaskMapper

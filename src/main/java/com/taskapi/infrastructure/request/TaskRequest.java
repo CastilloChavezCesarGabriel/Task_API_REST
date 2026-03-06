@@ -1,22 +1,21 @@
 package com.taskapi.infrastructure.request;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.taskapi.application.TaskOperations;
+import com.taskapi.application.result.TaskResult;
+
 public final class TaskRequest {
-    private String title;
-    private String description;
+    private final String title;
+    private final String description;
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
+    @JsonCreator
+    public TaskRequest(@JsonProperty("title") String title, @JsonProperty("description") String description) {
         this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
         this.description = description;
+    }
+
+    public TaskResult create(TaskOperations operations) {
+        return operations.create(title, description);
     }
 }

@@ -5,7 +5,6 @@ import com.taskapi.domain.Task;
 import com.taskapi.domain.visitor.ITaskRepository;
 
 public final class CompleteTaskUseCase extends TaskTransitionUseCase {
-
     public CompleteTaskUseCase(ITaskRepository repository) {
         super(repository);
     }

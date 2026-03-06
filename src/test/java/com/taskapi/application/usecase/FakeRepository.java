@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class FakeRepository implements ITaskRepository {
-    final List<Task> storedTasks = new ArrayList<>();
+    private final List<Task> storedTasks = new ArrayList<>();
 
     @Override
     public void store(Task task) {
@@ -30,5 +30,9 @@ public final class FakeRepository implements ITaskRepository {
     @Override
     public List<Task> collect(TaskStatus status) {
         return List.of();
+    }
+
+    public int count() {
+        return storedTasks.size();
     }
 }

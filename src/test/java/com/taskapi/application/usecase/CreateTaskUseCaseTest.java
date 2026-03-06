@@ -24,7 +24,7 @@ public final class CreateTaskUseCaseTest {
     @Test
     void createStoresTaskInRepository() {
         useCase.create("Learn REST", "Build API");
-        assertEquals(1, repository.storedTasks.size());
+        assertEquals(1, repository.count());
     }
 
     @Test

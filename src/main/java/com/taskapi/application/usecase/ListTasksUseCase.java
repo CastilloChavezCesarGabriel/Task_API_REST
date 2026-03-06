@@ -4,6 +4,7 @@ import com.taskapi.domain.visitor.ITaskRepository;
 import com.taskapi.domain.visitor.ITaskVisitor;
 import com.taskapi.domain.Task;
 import com.taskapi.domain.TaskStatus;
+import java.util.List;
 
 public final class ListTasksUseCase {
     private final ITaskRepository repository;
@@ -13,13 +14,15 @@ public final class ListTasksUseCase {
     }
 
     public void list(ITaskVisitor visitor) {
-        for (Task task : repository.collect()) {
-            task.accept(visitor);
-        }
+        traverse(repository.collect(), visitor);
     }
 
     public void list(TaskStatus status, ITaskVisitor visitor) {
-        for (Task task : repository.collect(status)) {
+        traverse(repository.collect(status), visitor);
+    }
+
+    private void traverse(List<Task> tasks, ITaskVisitor visitor) {
+        for (Task task : tasks) {
             task.accept(visitor);
         }
     }
