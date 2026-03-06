@@ -1,6 +1,6 @@
 package com.taskapi.infrastructure;
 
-import com.taskapi.application.TaskOperations;
+import com.taskapi.application.TaskFacade;
 import com.taskapi.application.result.TaskResult;
 import com.taskapi.domain.TaskStatus;
 import com.taskapi.infrastructure.request.TaskRequest;
@@ -16,15 +16,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/tasks")
 public final class TaskController {
-    private final TaskOperations operations;
+    private final TaskFacade facade;
 
-    public TaskController(TaskOperations operations) {
-        this.operations = operations;
+    public TaskController(TaskFacade facade) {
+        this.facade = facade;
     }
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@RequestBody TaskRequest request) {
-        TaskResult result = request.create(operations);
+        TaskResult result = request.create(facade);
         return result.provide(new Response(HttpStatus.CREATED, HttpStatus.BAD_REQUEST));
     }
 
@@ -37,17 +37,17 @@ public final class TaskController {
 
     @PutMapping("/{identifier}/start")
     public ResponseEntity<Map<String, Object>> start(@PathVariable String identifier) {
-        return handle(operations.start(identifier));
+        return handle(facade.start(identifier));
     }
 
     @PutMapping("/{identifier}/complete")
     public ResponseEntity<Map<String, Object>> complete(@PathVariable String identifier) {
-        return handle(operations.complete(identifier));
+        return handle(facade.complete(identifier));
     }
 
     @DeleteMapping("/{identifier}")
     public ResponseEntity<Map<String, Object>> remove(@PathVariable String identifier) {
-        return handle(operations.remove(identifier));
+        return handle(facade.remove(identifier));
     }
 
     private ResponseEntity<Map<String, Object>> handle(TaskResult result) {
@@ -56,9 +56,9 @@ public final class TaskController {
 
     private void resolve(String status, TaskCollector collector) {
         if (status == null || status.isBlank()) {
-            operations.list(collector);
+            facade.list(collector);
         } else {
-            operations.list(TaskStatus.valueOf(status.toUpperCase()), collector);
+            facade.list(TaskStatus.valueOf(status.toUpperCase()), collector);
         }
     }
 }

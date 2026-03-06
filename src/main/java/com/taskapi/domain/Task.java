@@ -1,7 +1,6 @@
 package com.taskapi.domain;
 
 import com.taskapi.domain.visitor.ITaskVisitor;
-
 import java.util.List;
 import java.util.UUID;
 

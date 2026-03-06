@@ -2,7 +2,7 @@ package com.taskapi.infrastructure.request;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.taskapi.application.TaskOperations;
+import com.taskapi.application.TaskFacade;
 import com.taskapi.application.result.TaskResult;
 
 public final class TaskRequest {
@@ -15,7 +15,7 @@ public final class TaskRequest {
         this.description = description;
     }
 
-    public TaskResult create(TaskOperations operations) {
-        return operations.create(title, description);
+    public TaskResult create(TaskFacade facade) {
+        return facade.create(title, description);
     }
 }

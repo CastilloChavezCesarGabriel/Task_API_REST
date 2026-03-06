@@ -15,10 +15,10 @@ to getter calls.
   encapsulate behavior without getters. Visitor interfaces live in `domain/visitor/` and define the
   contracts for data access and persistence.
 - **Application**: Use cases (`CreateTaskUseCase`, `StartTaskUseCase`, `CompleteTaskUseCase`,
-  `RemoveTaskUseCase`, `ListTasksUseCase`) each do one thing and return typed result objects.
+  `RemoveTaskUseCase`, `ListTasksUseCase`) each does one thing and returns typed result objects.
   `StartTaskUseCase` and `CompleteTaskUseCase` extend `TaskTransitionUseCase`, which centralizes the
-  shared find-null-check-store pattern. `TaskOperations` acts as a facade, creating use cases on demand
-  via factory methods and giving the controller a single entry point.
+  shared find-null-check-store pattern. `TaskFacade` acts as a facade, providing a unified interface to the
+  use case subsystem and giving the controller a single entry point.
 - **Infrastructure**: Spring Boot wiring. `TaskController` handles HTTP. `TaskRepository`
   stores tasks in memory. `TaskMapper` is an abstract visitor that converts task data into maps, extended
   by `Response` for single-task endpoints and `TaskCollector` for list endpoints.
@@ -79,7 +79,7 @@ TaskAPI/
 │   │       ├── ITaskStateVisitor.java       # Visitor interface for TaskState data access
 │   │       └── ITaskRepository.java         # Repository contract
 │   ├── application/
-│   │   ├── TaskOperations.java              # Facade creating use cases on demand via factory methods
+│   │   ├── TaskFacade.java                    # Facade: unified interface to the use case subsystem
 │   │   ├── result/
 │   │   │   ├── TaskResult.java              # Result object for all task operations
 │   │   │   └── ITaskResultConsumer.java     # Consumer interface for task results
@@ -92,12 +92,13 @@ TaskAPI/
 │   │       └── ListTasksUseCase.java        # Pushes all or filtered tasks to a visitor
 │   └── infrastructure/
 │       ├── TaskApiApplication.java          # Spring Boot entry point
-│       ├── TaskController.java             # REST controller with one param: TaskOperations
+│       ├── ApplicationConfiguration.java   # Wires application-layer beans into Spring context
+│       ├── TaskController.java             # REST controller with one param: TaskFacade
 │       ├── persistence/
 │       │   ├── TaskRepository.java          # ConcurrentHashMap-based implementation
 │       │   └── TaskRecorder.java            # Visitor that records task into storage by identifier
 │       ├── request/
-│       │   └── TaskRequest.java             # Immutable request that pushes data to TaskOperations
+│       │   └── TaskRequest.java             # Immutable request that pushes data to TaskFacade
 │       └── response/
 │           ├── TaskMapper.java              # Abstract visitor: shared task-to-map conversion
 │           ├── Response.java                # Single-task result consumer extending TaskMapper
@@ -116,28 +117,28 @@ TaskAPI/
 
 ## Design Patterns
 
-| Pattern                          | Usage                                                                                                       |
-|----------------------------------|-------------------------------------------------------------------------------------------------------------|
-| **Visitor**                      | `Task`, `TaskIdentity` and `TaskState` push their data to visitors — no getters anywhere in the domain      |
-| **Result Object**                | Each use case returns a typed result with `provide()`, decoupling use case logic from HTTP concerns          |
-| **Facade**                       | `TaskOperations` groups all five use cases behind a single injectable dependency                             |
-| **Factory Method**               | `TaskOperations` creates use cases on demand; `TaskResult.accept()` / `reject()` communicate outcome        |
-| **Abstract Class Polymorphism**  | `TaskTransitionUseCase` centralizes find-store for `StartTaskUseCase` and `CompleteTaskUseCase`              |
-| **Abstract Class Polymorphism**  | `TaskMapper` centralizes task-to-map visitor logic for `Response` and `TaskCollector`                        |
+| Pattern                         | Usage                                                                                                  |
+|---------------------------------|--------------------------------------------------------------------------------------------------------|
+| **Visitor**                     | `Task`, `TaskIdentity` and `TaskState` push their data to visitors — no getters anywhere in the domain |
+| **Result Object**               | Each use case returns a typed result with `provide()`, decoupling use case logic from HTTP concerns    |
+| **Facade**                      | `TaskFacade` provides a unified interface to the five use cases behind a single injectable dependency |
+| **Factory Method**              | `TaskFacade` creates use cases on demand; `TaskResult.accept()` / `reject()` communicate outcome     |
+| **Abstract Class Polymorphism** | `TaskTransitionUseCase` centralizes find-store for `StartTaskUseCase` and `CompleteTaskUseCase`        |
+| **Abstract Class Polymorphism** | `TaskMapper` centralizes task-to-map visitor logic for `Response` and `TaskCollector`                  |
 
 ## Program Flow
 
 1. When the application starts, Spring Boot scans the packages and wires everything together automatically.
-   `TaskRepository` is registered as a `@Repository`, `TaskOperations` as a `@Service`, and
-   `TaskController` as a `@RestController`. Spring injects `TaskRepository` into `TaskOperations`,
-   and `TaskOperations` into `TaskController` — all through constructor injection with a single parameter each.
+   `TaskRepository` is registered as a `@Repository` and `TaskController` as a `@RestController`.
+   `ApplicationConfiguration` wires `TaskFacade` as a `@Bean`, injecting `TaskRepository` into it.
+   Spring then injects `TaskFacade` into `TaskController` — all through constructor injection with a single parameter each.
 
-2. When a client (an Android app, curl, or Postman) sends an HTTP request, `TaskController` receives it
+2. When a client (an Android app, curl or Postman) sends an HTTP request, `TaskController` receives it
    and reads the request data — either a JSON body for creation, a path variable for start, completion
-   and removal, or a query parameter for status filtering. The controller immediately delegates to
-   `TaskOperations` without performing any business logic itself.
+   and removal or a query parameter for status filtering. The controller immediately delegates to
+   `TaskFacade` without performing any business logic itself.
 
-3. `TaskOperations` creates the appropriate use case on demand via factory method and forwards the call.
+3. `TaskFacade` creates the appropriate use case on demand and forwards the call.
    The use case validates the input — for example, `CreateTaskUseCase` rejects a blank title immediately —
    and interacts with `ITaskRepository` to store, find or remove tasks. For state transitions,
    `StartTaskUseCase` and `CompleteTaskUseCase` inherit the shared find-null-check-store logic from
@@ -149,7 +150,7 @@ TaskAPI/
 4. Back in the controller, `result.provide()` receives a `Response` and returns the `ResponseEntity`
    directly. `Response` extends `TaskMapper`, which is an abstract visitor that converts task data into
    a `Map<String, Object>`. When `accept(Task)` is called, it visits the task internally, builds the
-   JSON map, and wraps it in the appropriate HTTP status. When `reject(String)` is called, it returns an
+   JSON map and wraps it in the appropriate HTTP status. When `reject(String)` is called, it returns an
    error response. For list endpoints, a `TaskCollector` (also extending `TaskMapper`) receives each
    task via the Visitor pattern and pushes the built map into an externally owned target list — no
    `build()` getter is needed.

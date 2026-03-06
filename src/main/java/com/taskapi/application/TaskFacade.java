@@ -9,13 +9,11 @@ import com.taskapi.application.usecase.StartTaskUseCase;
 import com.taskapi.domain.visitor.ITaskRepository;
 import com.taskapi.domain.visitor.ITaskVisitor;
 import com.taskapi.domain.TaskStatus;
-import org.springframework.stereotype.Service;
 
-@Service
-public final class TaskOperations {
+public final class TaskFacade {
     private final ITaskRepository repository;
 
-    public TaskOperations(ITaskRepository repository) {
+    public TaskFacade(ITaskRepository repository) {
         this.repository = repository;
     }
 
