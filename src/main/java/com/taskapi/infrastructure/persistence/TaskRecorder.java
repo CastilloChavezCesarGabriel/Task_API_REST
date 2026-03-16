@@ -5,7 +5,6 @@ import com.taskapi.domain.visitor.ITaskVisitor;
 import com.taskapi.domain.Task;
 import com.taskapi.domain.TaskIdentity;
 import com.taskapi.domain.TaskState;
-
 import java.util.Map;
 
 public final class TaskRecorder implements ITaskVisitor, ITaskIdentityVisitor {

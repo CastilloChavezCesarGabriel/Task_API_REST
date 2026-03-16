@@ -1,9 +1,9 @@
-package com.taskapi.infrastructure;
+package com.taskapi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = "com.taskapi")
+@SpringBootApplication
 public class TaskApiApplication {
     public static void main(String[] arguments) {
         SpringApplication.run(TaskApiApplication.class, arguments);

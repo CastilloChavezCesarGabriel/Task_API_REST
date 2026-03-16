@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import com.taskapi.domain.visitor.ITaskRepository;
+import com.taskapi.domain.ITaskRepository;
+import com.taskapi.domain.ITaskTransformation;
 import com.taskapi.domain.Task;
 import com.taskapi.domain.TaskStatus;
+import com.taskapi.domain.visitor.ITaskVisitor;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,26 +21,34 @@ public final class TaskRepository implements ITaskRepository {
     }
 
     @Override
-    public void remove(String identifier) {
-        storage.remove(identifier);
+    public Task remove(String identifier) {
+        return storage.remove(identifier);
     }
 
     @Override
-    public Task find(String identifier) {
-        return storage.get(identifier);
+    public Task apply(String identifier, ITaskTransformation transformation) {
+        Task task = storage.get(identifier);
+        if (task == null) return null;
+        Task transformed = transformation.transform(task);
+        store(transformed);
+        return transformed;
     }
 
     @Override
-    public List<Task> collect() {
-        return new ArrayList<>(storage.values());
-    }
-
-    @Override
-    public List<Task> collect(TaskStatus status) {
-        List<Task> filtered = new ArrayList<>();
+    public void list(ITaskVisitor visitor) {
         for (Task task : storage.values()) {
-            task.filter(filtered, status);
+            task.accept(visitor);
         }
-        return filtered;
+    }
+
+    @Override
+    public void filter(TaskStatus status, ITaskVisitor visitor) {
+        List<Task> matching = new ArrayList<>();
+        for (Task task : storage.values()) {
+            task.filter(matching, status);
+        }
+        for (Task task : matching) {
+            task.accept(visitor);
+        }
     }
 }

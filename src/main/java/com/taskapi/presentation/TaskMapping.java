@@ -1,21 +1,22 @@
-package com.taskapi.infrastructure.response;
+package com.taskapi.presentation;
 
-import com.taskapi.domain.visitor.ITaskIdentityVisitor;
-import com.taskapi.domain.visitor.ITaskStateVisitor;
-import com.taskapi.domain.visitor.ITaskVisitor;
 import com.taskapi.domain.TaskIdentity;
 import com.taskapi.domain.TaskState;
 import com.taskapi.domain.TaskStatus;
-import java.util.LinkedHashMap;
+import com.taskapi.domain.visitor.ITaskIdentityVisitor;
+import com.taskapi.domain.visitor.ITaskStateVisitor;
+import com.taskapi.domain.visitor.ITaskVisitor;
 import java.util.Map;
 
-public abstract class TaskMapper implements ITaskVisitor,
-        ITaskIdentityVisitor, ITaskStateVisitor {
-    protected Map<String, Object> content;
+public final class TaskMapping implements ITaskVisitor, ITaskIdentityVisitor, ITaskStateVisitor {
+    private final Map<String, Object> content;
+
+    public TaskMapping(Map<String, Object> content) {
+        this.content = content;
+    }
 
     @Override
     public void visit(TaskIdentity identity, TaskState state) {
-        content = new LinkedHashMap<>();
         identity.accept(this);
         state.accept(this);
     }

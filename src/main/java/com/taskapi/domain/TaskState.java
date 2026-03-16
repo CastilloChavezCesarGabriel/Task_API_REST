@@ -11,6 +11,14 @@ public final class TaskState {
         this.status = status;
     }
 
+    public TaskState start() {
+        return new TaskState(description, TaskStatus.IN_PROGRESS);
+    }
+
+    public TaskState complete() {
+        return new TaskState(description, TaskStatus.COMPLETED);
+    }
+
     public void accept(ITaskStateVisitor visitor) {
         visitor.visit(description, status);
     }

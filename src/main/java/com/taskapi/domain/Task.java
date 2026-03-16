@@ -6,42 +6,35 @@ import java.util.UUID;
 
 public final class Task {
     private final TaskIdentity identity;
-    private final String description;
-    private final TaskStatus status;
+    private final TaskState state;
 
-    private Task(TaskIdentity identity, String description) {
+    private Task(TaskIdentity identity, TaskState state) {
         this.identity = identity;
-        this.description = description;
-        this.status = TaskStatus.PENDING;
-    }
-
-    private Task(Task origin, TaskStatus newStatus) {
-        this.identity = origin.identity;
-        this.description = origin.description;
-        this.status = newStatus;
+        this.state = state;
     }
 
     public static Task create(String title, String description) {
         String identifier = UUID.randomUUID().toString();
         TaskIdentity identity = new TaskIdentity(identifier, title);
-        return new Task(identity, description);
+        TaskState state = new TaskState(description, TaskStatus.PENDING);
+        return new Task(identity, state);
     }
 
     public Task start() {
-        return new Task(this, TaskStatus.IN_PROGRESS);
+        return new Task(identity, state.start());
     }
 
     public Task complete() {
-        return new Task(this, TaskStatus.COMPLETED);
+        return new Task(identity, state.complete());
     }
 
     public void filter(List<Task> target, TaskStatus expected) {
-        if (status == expected) {
-            target.add(this);
-        }
+        state.accept((description, status) -> {
+            if (status == expected) target.add(this);
+        });
     }
 
     public void accept(ITaskVisitor visitor) {
-        visitor.visit(identity, new TaskState(description, status));
+        visitor.visit(identity, state);
     }
 }

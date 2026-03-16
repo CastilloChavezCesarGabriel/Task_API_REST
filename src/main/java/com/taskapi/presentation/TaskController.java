@@ -1,31 +1,32 @@
-package com.taskapi.infrastructure;
+package com.taskapi.presentation;
 
 import com.taskapi.application.TaskFacade;
-import com.taskapi.application.result.TaskResult;
+import com.taskapi.domain.Task;
 import com.taskapi.domain.TaskStatus;
-import com.taskapi.infrastructure.request.TaskRequest;
-import com.taskapi.infrastructure.response.Response;
-import com.taskapi.infrastructure.response.TaskCollector;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/tasks")
 public final class TaskController {
-    private final TaskFacade facade;
+    private final TaskFacade taskFacade;
 
-    public TaskController(TaskFacade facade) {
-        this.facade = facade;
+    public TaskController(TaskFacade taskFacade) {
+        this.taskFacade = taskFacade;
     }
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@RequestBody TaskRequest request) {
-        TaskResult result = request.create(facade);
-        return result.provide(new Response(HttpStatus.CREATED, HttpStatus.BAD_REQUEST));
+        Task task = request.create(this.taskFacade);
+        if (task == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Title cannot be empty"));
+        }
+        return respond(task, HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -37,28 +38,37 @@ public final class TaskController {
 
     @PutMapping("/{identifier}/start")
     public ResponseEntity<Map<String, Object>> start(@PathVariable String identifier) {
-        return handle(facade.start(identifier));
+        return handle(taskFacade.start(identifier));
     }
 
     @PutMapping("/{identifier}/complete")
     public ResponseEntity<Map<String, Object>> complete(@PathVariable String identifier) {
-        return handle(facade.complete(identifier));
+        return handle(taskFacade.complete(identifier));
     }
 
     @DeleteMapping("/{identifier}")
     public ResponseEntity<Map<String, Object>> remove(@PathVariable String identifier) {
-        return handle(facade.remove(identifier));
+        return handle(taskFacade.remove(identifier));
     }
 
-    private ResponseEntity<Map<String, Object>> handle(TaskResult result) {
-        return result.provide(new Response(HttpStatus.OK, HttpStatus.NOT_FOUND));
+    private ResponseEntity<Map<String, Object>> handle(Task task) {
+        if (task == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Task not found"));
+        }
+        return respond(task, HttpStatus.OK);
+    }
+
+    private ResponseEntity<Map<String, Object>> respond(Task task, HttpStatus status) {
+        Map<String, Object> content = new LinkedHashMap<>();
+        task.accept(new TaskMapping(content));
+        return ResponseEntity.status(status).body(content);
     }
 
     private void resolve(String status, TaskCollector collector) {
         if (status == null || status.isBlank()) {
-            facade.list(collector);
+            taskFacade.list(collector);
         } else {
-            facade.list(TaskStatus.valueOf(status.toUpperCase()), collector);
+            taskFacade.filter(TaskStatus.valueOf(status.toUpperCase()), collector);
         }
     }
 }
